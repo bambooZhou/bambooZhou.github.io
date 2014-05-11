@@ -1,8 +1,6 @@
+#MySQL master-slave安装部署实战
 
-
-#MySQL master -slave安装部署
-
->操作系统：Ubuntu 12.04
+>操作系统：Ubuntu 12.04 x86_64
 >MySQL：5.5.37
 
 ##1，安装必备工具
@@ -19,8 +17,8 @@ sudo apt-get -y install vim
 ##2，创建MySQL用户和用户组
 
 ```shell
-sudo groupadd mysql
-sudo useradd -r -g mysql mysql
+sudo groupadd -r mysql # -r创建系统组
+sudo useradd -r -g mysql mysql #-r创建系统组
 ```
 
 ##3，下载并解压MySQL源码包
@@ -45,7 +43,7 @@ sudo make install
 ##4.2，master实例安装后处理
 
 ```shell
-sudo cd /usr/local/mysql_3306
+cd /usr/local/mysql_3306
 sudo chown -R mysql .
 sudo chgrp -R mysql .
 sudo scripts/mysql_install_db --user=mysql
@@ -56,7 +54,7 @@ sudo chown -R mysql data
 ##4.3，master实例配置文件
 
 ```shell
-sudo cd /usr/local/mysql_3306/support-files
+cd /usr/local/mysql_3306/support-files
 sudo cp my-medium.cnf my.cnf
 sudo vim my.cnf
 ```
@@ -81,16 +79,16 @@ sudo vim my.cnf
 
 # The following options will be passed to all MySQL clients
 [client]
-#password	= your_password
-port		= 3306
-socket		= /tmp/mysql_3306.sock
+#password   = your_password
+port        = 3306
+socket      = /tmp/mysql_3306.sock
 
 # Here follows entries for some specific programs
 
 # The MySQL server
 [mysqld]
-port		= 3306
-socket		= /tmp/mysql_3306.sock
+port        = 3306
+socket      = /tmp/mysql_3306.sock
 skip-external-locking
 key_buffer_size = 16M
 max_allowed_packet = 1M
@@ -119,7 +117,7 @@ binlog_format=mixed
 # required unique id between 1 and 2^32 - 1
 # defaults to 1 if master-host is not set
 # but will not function as a master if omitted
-server-id	= 1
+server-id   = 1
 
 # Replication Slave (comment out master section to use this)
 #
@@ -213,7 +211,8 @@ interactive-timeout
 
 ```shell
 cd /usr/local/mysql_3306/bin
-./mysqld_safe --defaults-extra-file=../support-files/my.cnf & #使用指定配置文件启动MySQL服务器
+
+sudo ./mysqld_safe --defaults-extra-file=../support-files/my.cnf & #使用指定配置文件启动MySQL服务器
 ./mysqladmin --socket=/tmp/mysql_3306.sock -u root password 'admin' #设置root的密码
 ./mysql -u root -padmin --socket=/tmp/mysql_3306.sock #尝试连接
 ./mysqladmin -u root -padmin --socket=/tmp/mysql_3306.sock shutdown #关闭MySQL服务器
@@ -222,11 +221,12 @@ cd /usr/local/mysql_3306/bin
 ##4.5，master实例添加replication账户
 ```
 cd /usr/local/mysql_3306/bin
-./mysqld_safe --defaults-extra-file=../support-files/my.cnf & #使用指定配置文件启动MySQL服务器
+sudo ./mysqld_safe --defaults-extra-file=../support-files/my.cnf & #使用指定配置文件启动MySQL服务器
 ./mysql -u root -padmin --socket=/tmp/mysql_3306.sock #尝试连接
 
 CREATE USER 'repl'@'%' IDENTIFIED BY 'slavepass';
 GRANT REPLICATION SLAVE,REPLICATION CLIENT ON *.* TO 'repl'@'%' identified by 'slavepass' with grant option;
+GRANT REPLICATION SLAVE,REPLICATION CLIENT ON *.* TO 'repl'@'localhost' identified by 'slavepass' with grant option;
 ```
 
 #5，slave实例安装部署相关
@@ -243,7 +243,7 @@ sudo make install
 ##5.2，slave实例安装后处理
 
 ```shell
-sudo cd /usr/local/mysql_3307
+cd /usr/local/mysql_3307
 sudo chown -R mysql .
 sudo chgrp -R mysql .
 sudo scripts/mysql_install_db --user=mysql
@@ -254,7 +254,7 @@ sudo chown -R mysql data
 ##5.3，slave实例配置文件
 
 ```
-sudo cd /usr/local/mysql_3307/support-files
+cd /usr/local/mysql_3307/support-files
 sudo cp my-medium.cnf my.cnf
 sudo vim my.cnf
 ```
@@ -279,16 +279,16 @@ sudo vim my.cnf
 
 # The following options will be passed to all MySQL clients
 [client]
-#password	= your_password
-port		= 3307
-socket		= /tmp/mysql_3307.sock
+#password   = your_password
+port        = 3307
+socket      = /tmp/mysql_3307.sock
 
 # Here follows entries for some specific programs
 
 # The MySQL server
 [mysqld]
-port		= 3307
-socket		= /tmp/mysql_3307.sock
+port        = 3307
+socket      = /tmp/mysql_3307.sock
 skip-external-locking
 key_buffer_size = 16M
 max_allowed_packet = 1M
@@ -317,7 +317,7 @@ myisam_sort_buffer_size = 8M
 # required unique id between 1 and 2^32 - 1
 # defaults to 1 if master-host is not set
 # but will not function as a master if omitted
-#server-id	= 1
+#server-id  = 1
 
 # Replication Slave (comment out master section to use this)
 #
@@ -411,7 +411,7 @@ interactive-timeout
 
 ```shell
 cd /usr/local/mysql_3307/bin
-./mysqld_safe --defaults-extra-file=../support-files/my.cnf & #使用指定配置文件启动MySQL服务器
+sudo ./mysqld_safe --defaults-extra-file=../support-files/my.cnf & #使用指定配置文件启动MySQL服务器
 ./mysqladmin --socket=/tmp/mysql_3307.sock -u root password 'admin' #设置root的密码
 ./mysql -u root -padmin --socket=/tmp/mysql_3307.sock #尝试连接
 ./mysqladmin -u root -padmin --socket=/tmp/mysql_3307.sock shutdown #关闭MySQL服务器
@@ -422,12 +422,12 @@ cd /usr/local/mysql_3307/bin
 ```shell
 cd /usr/local/mysql_3307/bin
 
-./mysqld_safe --defaults-extra-file=../support-files/my.cnf --relay-log=precise64-relay-bin &
+sudo ./mysqld_safe --defaults-extra-file=../support-files/my.cnf --relay-log=precise64-relay-bin &
 ./mysql -u root -padmin --socket=/tmp/mysql_3307.sock #尝试连接
 
 #mysql>
 stop slave; #先停止slave同步线程
-change master to master_host='localhost', master_port=3306, master_user='repl', master_password='slavepass',master_log_file='mysql-bin.000001', master_log_pos=xxx; #xxx为同步的起点，可在master实例查看（show master status;)
+change master to master_host='localhost', master_port=3306, master_user='repl', master_password='slavepass',master_log_file='mysql-bin.xxxxxx', master_log_pos=xxx; #mysql-bin.xxxxxx为master的log文件名，xxx为同步的起点，可在master实例查看（show master status;)
 start slave; #开启slave同步线程
 
 show processlist;
@@ -441,12 +441,12 @@ show processlist;
 ```sql
 use test;
 create table test (
-    id int;
+    id int
 );
 insert into test values(1);
 ```
 
-##6.2，在slave里的test数据库查询在aster的中创建的表及数添加的据
+##6.2，在slave里的test数据库查询在master的中创建的表及数添加的据
 
 ```sql
 user test;
